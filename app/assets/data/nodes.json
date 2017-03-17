@@ -1,0 +1,65 @@
+[  
+   {  
+      "id":0,
+      "label":[  
+         "entity",
+         "metric"
+      ],
+      "type":"",
+      "name":"Claims Closure Ratio"
+   },
+   {  
+      "id":2,
+      "label":[  
+         "entity",
+         "metric"
+      ],
+      "type":"",
+      "name":"Closed Claims Count"
+   },
+   {  
+      "id":4,
+      "label":[  
+         "entity",
+         "metric"
+      ],
+      "type":"",
+      "name":"New Claims Count"
+   },
+   {  
+      "id":6,
+      "label":[  
+         "entity",
+         "metric"
+      ],
+      "type":"",
+      "name":"Outstanding Claims Count"
+   },
+   {  
+      "id":8,
+      "label":[  
+         "entity",
+         "calculation"
+      ],
+      "type":"",
+      "name":"Calculate Claims Closure Ratio"
+   },
+   {  
+      "id":10,
+      "label":[  
+         "entity",
+         "businessObject"
+      ],
+      "type":"",
+      "name":"Calculate Claims Closure Ratio"
+   },
+   {  
+      "id":12,
+      "label":[  
+         "entity",
+         "calculation"
+      ],
+      "type":"",
+      "name":"Calculate New Claims Count"
+   }
+]
