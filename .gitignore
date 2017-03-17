@@ -9,8 +9,9 @@ bin
 obj
 /packages
 
-# Ignore Node, Bower & Sass #
+# Ignore Node, Bower & Sass & backupDelete#
 #############################
+backupDelete
 node_modules
 app/bower_components
 build
