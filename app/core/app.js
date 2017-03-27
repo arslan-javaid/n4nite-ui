@@ -14,6 +14,8 @@
         'app.node',
         'app.directives.d3Bars',
         'app.d3',
-        'app.d3Test'
+        'app.d3Test',
+        'app.inforniteTool',
+        'app.directives.d3Infornite'
     ]);
 })();
