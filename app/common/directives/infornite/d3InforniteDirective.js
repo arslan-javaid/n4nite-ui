@@ -17,8 +17,14 @@
                     self.margin = options && options.margin ? options.margin : margin;
                     self.chartId = options && options.chartId ? '#' + options.chartId : 'body';
                     self.parentEle = angular.element(self.chartId).parent();
+                    self.chartType = options && options.chartType ? options.chartType : 'force';
 
-                    self.force = d3.layout.force().charge(-200).linkDistance(50);
+                    self.treeLayout = d3.layout.tree();
+                    self.forceLayout = d3.layout.force().gravity(0.05).charge(-260).linkDistance(60);
+                    self.svgDiagonal = d3.svg.diagonal().projection(function (d) {
+                        return [d.y, d.x];
+                    });
+
                     self.zoom = d3.behavior.zoom().scaleExtent([min_zoom, max_zoom]).on("zoom", fnZoomed);
                     self.drag = d3.behavior.drag()
                         .on("dragstart", fnDragStarted)
@@ -39,38 +45,51 @@
                     if (!self.parentEle.width()) {
                         return false;
                     }
+
                     self.chartWidth = self.parentEle.width() - self.margin.right - self.margin.left;
                     self.chartHeight = fnRatio(self.chartWidth) * self.chartWidth;
 
-                    self.force.size([self.chartWidth + margin.left + margin.right, self.chartHeight + margin.top + margin.bottom]);
+                    self.treeLayout.size([self.chartHeight, self.chartWidth]);
+                    self.forceLayout.size([self.chartWidth, self.chartHeight]);
 
                     //update svg elements to new dimensions
                     self.svg.attr('width', self.chartWidth + self.margin.right + self.margin.left)
                         .attr('height', self.chartHeight + self.margin.top + self.margin.bottom);
 
-                    self.chartWrapper
-                        .attr('transform', 'translate(' + self.margin.left + ',' + self.margin.top + ')');
-
+                    self.chartWrapper.attr('transform', 'translate(' + self.margin.left + ',' + self.margin.top + ')');
                     self.rect.attr("width", self.chartWidth).attr("height", self.chartHeight);
                 };
 
                 d3Infornite.prototype.update = function (data) {
-
+                    self.render();
                     // Filter node edges.
-                    var nodesLen = data.nodes.length, links = data.edges.filter(function (d) {
+                    var nodesLen = data.nodes.length;
+                    data.edges = data.edges.filter(function (d) {
                         return 0 < d.source && d.source < nodesLen && 0 < d.target && d.target < nodesLen;
                     });
 
-                    self.force.nodes(data.nodes).links(links).start();
+                    // TODO : Get tree index 5 data remove once API give proper response.
+                    self.treeData = fnGenerateTree(angular.copy(data))[5];
+                    self.redraw();
+                };
+
+                d3Infornite.prototype.redraw = function () {
+                    var nodes = self.treeLayout.nodes(self.treeData), // create the nodes array
+                        links = self.treeLayout.links(nodes);      // creates the links array
+
+                    if (self.chartType === 'force') {
+                        self.forceLayout.nodes(nodes).links(links);
+                    }
 
                     /*----- START : Create edges -----*/
                     // Update links
-                    self.link = self.links.selectAll('.link').data(data.edges);
+                    self.link = self.links.selectAll('.link').data(links);
 
                     // Enter links
-                    self.link.enter().append('line')
+                    self.link.enter().append('path')
                         .attr('class', 'link')
-                        .style('stroke', '#000')
+                        .style('fill', 'none')
+                        .style('stroke', '#ccc')
                         .style('stroke-width', 2);
 
                     // Remove link object with data
@@ -79,7 +98,7 @@
 
 
                     /*----- START : Create nodes -----*/
-                    self.node = self.nodes.selectAll('.node').data(data.nodes);
+                    self.node = self.nodes.selectAll('.node').data(nodes);
 
                     // enter selection
                     self.nodeEnter = self.node.enter().append('g').attr('class', 'node');
@@ -88,18 +107,11 @@
 
                     // update selection
                     self.node.attr('class', 'node')
-                        .attr("cx", function (d) {
-                            return d.x;
-                        })
-                        .attr("cy", function (d) {
-                            return d.y;
-                        })
+                        .style("cursor", "pointer")
+                        .on("click", fnToggleNode)
                         .call(self.drag);
 
                     self.node.select('circle')
-                        .attr("r", function (d) {
-                            return (d.weight * 2) + 15;
-                        })
                         .style('fill', function (d) {
                             return d.color ? d.color : '#4682b4';
                         });
@@ -110,31 +122,93 @@
                         .attr("text-anchor", "middle")
                         .style('fill', '#fff')
                         .text(function (d) {
-                            return d.label[1].charAt(0).toUpperCase();
+                            return d.name.charAt(0).toUpperCase();
                         });
 
                     // Remove nodes object with data
                     self.node.exit().remove();
                     /*----- END : Create nodes -----*/
 
-                    self.force.on('tick', function () {
-                        self.link.attr('x1', function (d) {
-                            return d.source.x;
-                        }).attr('y1', function (d) {
-                            return d.source.y;
-                        }).attr('x2', function (d) {
-                            return d.target.x;
-                        }).attr('y2', function (d) {
-                            return d.target.y;
-                        });
+                    self.visualization();
+                };
 
-                        self.node.attr('transform', function (d) {
-                            return 'translate(' + d.x + ', ' + d.y + ')';
+                d3Infornite.prototype.visualization = function () {
+                    if (self.chartType === 'tree') {
+                        self.forceLayout.stop();
+                        var delay = 500;
+                        self.svgDiagonal.projection(function (d) {
+                            return [d.y, d.x];
                         });
+                        self.treeLayout.nodes(self.treeData);  	// recalculate tree layout
+
+                        // transition link paths
+                        self.link.transition().duration(delay).attr("d", self.svgDiagonal);
+                        // transition node groups
+                        self.node.transition()
+                            .duration(delay)
+                            .attr("transform", function (d) {
+                                delete d.px;	// delete px, py to get cleaner subsequent switches from tree to force
+                                delete d.py;
+                                return "translate(" + d.y + "," + d.x + ")";
+                            });
+                        self.node.select('circle').transition().duration(delay).attr("r", 15);
+                    } else if (self.chartType === 'force') {
+                        self.forceLayout.start();
+                        self.svgDiagonal.projection(function (d) {
+                            return [d.x, d.y];
+                        });
+                        self.node.select('circle')
+                            .attr("r", function (d) {
+                                return (d.weight * 2) + 15;
+                            });
+                        self.forceLayout.on('tick', function () {
+                            self.link.attr("d", self.svgDiagonal);
+
+                            self.node.attr('transform', function (d) {
+                                return 'translate(' + d.x + ', ' + d.y + ')';
+                            });
+                        });
+                    }
+                };
+
+                function fnGenerateTree(object) {
+                    var o = {}, children = {};
+
+                    object.nodes.forEach(function (a, i) {
+                        o[i] = {name: a.label[1], data: a};
                     });
 
-                    self.render();
-                };
+                    object.edges.forEach(function (a) {
+                        if (o[a.target] && o[a.source]) {
+                            o[a.target].parent = o[a.source].name;
+                            o[a.source].children = o[a.source].children || [];
+                            o[a.source].children.push(o[a.target]);
+                            children[a.target] = true;
+                        }
+                    });
+
+                    return Object.keys(o).filter(function (k) {
+                        return !children[k];
+                    }).map(function (k) {
+                        return o[k];
+                    });
+                }
+
+                // Toggle children on click.
+                function fnToggleNode(d) {
+                    // ignore drag
+                    if (d3.event.defaultPrevented) {
+                        return;
+                    }
+                    if (d.children) {
+                        d._children = d.children;
+                        d.children = null;
+                    } else {
+                        d.children = d._children;
+                        d._children = null;
+                    }
+                    self.redraw();
+                }
 
                 function fnZoomed() {
                     self.chartContainer.attr('transform', 'translate(' + d3.event.translate + ')scale(' + d3.event.scale + ')');
@@ -143,7 +217,6 @@
                 function fnDragStarted() {
                     d3.event.sourceEvent.stopPropagation();
                     d3.select(this).classed('dragging', true);
-                    self.force.start();
                 }
 
                 function fnDragged(d) {
@@ -180,6 +253,7 @@
                 },
                 templateUrl: 'common/directives/infornite/infornite.html',
                 link: function ($scope, iElement, iAttrs) {
+
                     var chart = new d3Infornite({chartId: 'infornite'});
                     chart.update(angular.copy($scope.data));
 
@@ -193,6 +267,15 @@
                         };
                         $scope.data.nodes.push(newNodeObj);
                         chart.update(angular.copy($scope.data));
+                    };
+
+                    $scope.fnChangeChartView = function () {
+                        if (chart.chartType === 'tree') {
+                            chart.chartType = 'force';
+                        } else {
+                            chart.chartType = 'tree';
+                        }
+                        chart.visualization();
                     };
                 }
             };
