@@ -1,17 +1,16 @@
 <div class="col-xs-12" style="position: relative;">
     <div id="infornite"></div>
     <div id='ss_menu'>
-        <div ng-click="fnAddNewNode('O')">O</div>
-        <div ng-click="fnAddNewNode('E')">E</div>
-        <div ng-click="fnAddNewNode('A')">A</div>
-        <div ng-click="fnAddNewNode('M')">M</div>
+        <div class="option" ng-click="fnAddNewNode('O')"><i>O</i></div>
+        <div class="option" ng-click="fnAddNewNode('E')"><i>E</i></div>
+        <div class="option" ng-click="fnAddNewNode('A')"><i>A</i></div>
+        <div class="option" ng-click="fnAddNewNode('M')"><i>M</i></div>
         <div class='menu'>
             <div class='share' id='ss_toggle' data-rot='180'>
-                <i class="glyphicon glyphicon-plus"></i>
+                <div class='bar'></div>
             </div>
         </div>
     </div>
-
     <div class="left-menu">
         <div class="btn-group">
             <button type="button" class="btn btn-primary" ng-click="fnChangeChartView()">

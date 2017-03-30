@@ -80,8 +80,8 @@
 
 #ss_menu {
     bottom: 30px;
-    width: 15px;
-    height: 15px;
+    width: 40px;
+    height: 40px;
     color: #fff;
     position: fixed;
     -webkit-transition: all 1s ease;
@@ -93,6 +93,20 @@
     -ms-transform: rotate(180deg);
     -o-transform: rotate(180deg);
     transform: rotate(180deg);
+}
+
+#ss_menu > .menu {
+    display: block;
+    position: absolute;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.23), 0 3px 10px rgba(0, 0, 0, 0.16);
+    color: #fff;
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    transition: all 1s ease;
 }
 
 #ss_menu > .menu .share {
@@ -111,6 +125,84 @@
     transition: all 1s ease;
 }
 
+#ss_menu > .menu .share .bar {
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    transition: all 1s ease;
+    width: 14px;
+    height: 3px;
+    background: #fff;
+    position: absolute;
+    top: 50%;
+    margin-top: -1.5px;
+    left: 14px;
+    -webkit-transform-origin: 0% 50%;
+    -moz-transform-origin: 0% 50%;
+    -ms-transform-origin: 0% 50%;
+    -o-transform-origin: 0% 50%;
+    transform-origin: 0% 50%;
+    -webkit-transform: rotate(0deg);
+    -moz-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    -o-transform: rotate(0deg);
+    transform: rotate(0deg);
+}
+
+#ss_menu > .menu .share .bar:before {
+    -webkit-transition: all 1s ease;
+    -moz-transition: all 1s ease;
+    transition: all 1s ease;
+    content: '';
+    width: 14px;
+    height: 3px;
+    background: #fff;
+    position: absolute;
+    left: 7px;
+    top: 7px;
+    -webkit-transform-origin: 0% 50%;
+    -moz-transform-origin: 0% 50%;
+    -ms-transform-origin: 0% 50%;
+    -o-transform-origin: 0% 50%;
+    transform-origin: 0% 50%;
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    -o-transform: rotate(-90deg);
+    transform: rotate(-90deg);
+}
+
+#ss_menu > .menu .share.close .bar {
+    top: 50%;
+    margin-top: -1.5px;
+    left: 62%;
+    margin-left: -12px;
+    -webkit-transform-origin: 50% 50%;
+    -moz-transform-origin: 50% 50%;
+    -ms-transform-origin: 50% 50%;
+    -o-transform-origin: 50% 50%;
+    transform-origin: 50% 50%;
+    -webkit-transform: rotate(405deg);
+    -moz-transform: rotate(405deg);
+    -ms-transform: rotate(405deg);
+    -o-transform: rotate(405deg);
+    transform: rotate(405deg);
+}
+
+#ss_menu > .menu .share.close .bar:before {
+    -webkit-transform-origin: 50% 50%;
+    -moz-transform-origin: 50% 50%;
+    -ms-transform-origin: 50% 50%;
+    -o-transform-origin: 50% 50%;
+    transform-origin: 50% 50%;
+    -webkit-transform: rotate(-450deg);
+    -moz-transform: rotate(-450deg);
+    -ms-transform: rotate(-450deg);
+    -o-transform: rotate(-450deg);
+    transform: rotate(-450deg);
+    top: 0px;
+    left: 0px;
+}
+
 #ss_menu > .menu.ss_active {
     background: #00796B;
 }
@@ -120,9 +212,9 @@
     -moz-box-sizing: border-box;
     box-sizing: border-box;
     position: absolute;
-    width: 40px;
-    height: 40px;
-    font-size: 30px;
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
     text-align: center;
     background: #00796B;
     border-radius: 50%;
@@ -130,8 +222,9 @@
 }
 
 #ss_menu > div i {
-    line-height: 1.5;
-    font-size: 24px;
+    display: table-cell;
+    vertical-align: middle;
+    font-style: normal;
 }
 
 #ss_menu > div:hover {
@@ -140,23 +233,62 @@
 }
 
 #ss_menu div:nth-child(1) {
-    top: 0;
-    left: -90px;
-}
-
-#ss_menu div:nth-child(2) {
-    top: -47px;
+    top: 4px;
     left: -80px;
 }
 
+#ss_menu .menu1:after {
+    content: '';
+    width: 50px; /* size of your margin */
+    border-bottom: 1px solid #000;
+    position: absolute;
+    top: 50%;
+    right: -50px;
+}
+
+#ss_menu div:nth-child(2) {
+    top: -40.0px;
+    left: -69.28203px;
+}
+
+#ss_menu .menu2:after {
+    content: '';
+    width: 5em;
+    border-bottom: 1px solid #000;
+    position: absolute;
+    top: 139%;
+    left: 22px;
+    transform: rotate(30deg);
+}
+
 #ss_menu div:nth-child(3) {
-    top: -80px;
-    left: -45px;
+    top: -69.28203px;
+    left: -40.0px;
+}
+
+#ss_menu .menu3:after {
+    content: '';
+    width: 5em;
+    border-bottom: 1px solid #000;
+    position: absolute;
+    top: 206%;
+    left: 2px;
+    transform: rotate(58deg);
 }
 
 #ss_menu div:nth-child(4) {
-    top: -95px;
-    left: 0;
+    top: -80px;
+    left: 4px;
+}
+
+#ss_menu .menu4:after {
+    content: '';
+    width: 5em;
+    border-bottom: 1px solid #000;
+    position: absolute;
+    top: 230%;
+    left: -24px;
+    transform: rotate(90deg);
 }
 
 .left-menu {
