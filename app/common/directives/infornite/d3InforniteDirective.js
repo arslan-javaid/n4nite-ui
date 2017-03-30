@@ -120,7 +120,8 @@
                         })
                         .attr('class', 'node');
                     self.nodeEnter.append('circle');
-                    self.nodeEnter.append('text');
+                    self.nodeEnter.append('text').attr('class', 'center-text');
+                    self.nodeEnter.append('text').attr('class', 'node-label');
 
                     // update selection
                     self.node.attr('class', 'node')
@@ -133,13 +134,22 @@
                             return d.color ? d.color : '#4682b4';
                         });
 
-                    self.node.select('text')
+                    self.node.select('.center-text')
                         .attr("x", 0)
                         .attr("dy", ".35em")
                         .attr("text-anchor", "middle")
                         .style('fill', '#fff')
                         .text(function (d) {
                             return d.name.charAt(0).toUpperCase();
+                        });
+
+                    self.node.select('.node-label')
+                        .attr("x", 21)
+                        .attr("dy", ".35em")
+                        .attr("text-anchor", "start")
+                        .style('fill', '#000')
+                        .text(function (d) {
+                            return d.data.metadata.name;
                         });
 
                     // Remove nodes object with data
@@ -159,8 +169,9 @@
                     nodeEnter.append('line');
                     nodeEnter.append('circle');
                     nodeEnter.append('text').attr("class", "node-center");
-                    nodeEnter.append('text').attr("class", "node-label");
-                    nodeEnter.append('foreignObject');
+                    nodeEnter.append('text').attr("class", function (d) {
+                        return 'node-label-' + d.id;
+                    });
 
                     // update selection
                     node.attr('class', 'new-node')
@@ -193,32 +204,47 @@
                         .attr("text-anchor", "middle")
                         .style('fill', '#fff')
                         .text(function (d) {
-                            return d.metadata.name;
+                            return d.metadata.name.charAt(0).toUpperCase();
                         });
 
-                    /*var _id = Date.now();
-                     node.select("foreignObject")
-                     .attr("class", "externalObject")
-                     .attr("width", 100)
-                     .attr("height", 100)
-                     .attr("x", 21)
-                     .attr("y", -11)
-                     .append("xhtml:div")
-                     .html("<input type='text' id='" + _id + "' placeholder='Add label' style='border: 1px solid #ccc;'>");
+                    nodeEnter.append('foreignObject')
+                        .attr("class", function (d) {
+                            return 'externalObject fo-' + d.id;
+                        })
+                        .attr("width", 100)
+                        .attr("height", 100)
+                        .attr("x", 21)
+                        .attr("y", -11)
+                        .append("xhtml:div")
+                        .html(function (d) {
+                            var inputText = document.createElement("input");
+                            inputText.setAttribute('type', 'text');
+                            inputText.setAttribute('id', d.id);
+                            inputText.setAttribute('class', 'new-label-input');
+                            inputText.setAttribute('placeholder', 'Add label');
+                            inputText.setAttribute('style', 'border: 1px solid #ccc;');
+                            inputText.setAttribute('value', d.metadata.name);
+                            return new XMLSerializer().serializeToString(inputText);
+                        });
 
-                     // Remove nodes object with data
-                     node.exit().remove();
+                    node.selectAll('.externalObject').select('input')
+                        .on('change', function () {
+                            var id = $(this).attr('id'),
+                                val = $(this).val();
+                            node.select('.node-label-' + id)
+                                .attr("x", 21)
+                                .attr("dy", ".35em")
+                                .attr("text-anchor", "start")
+                                .style('fill', '#000')
+                                .text(val);
+                            node.select('.fo-' + id).attr('id', function (d) {
+                                d.metadata.name = val;
+                            });
+                            node.select('.fo-' + id).remove();
+                        });
 
-                     var ele = $('#' + _id);
-                     ele.on("change", function () {
-                     node.select('text.node-label')
-                     .attr("x", 21)
-                     .attr("dy", ".35em")
-                     .attr("text-anchor", "start")
-                     .style('fill', '#000')
-                     .text($(this).val());
-                     node.select(".externalObject").remove();
-                     });*/
+                    // Remove nodes object with data
+                    node.exit().remove();
                 };
 
                 d3Infornite.prototype.visualization = function () {
@@ -453,7 +479,7 @@
                     $scope.fnAddNewNode = function (text) {
                         var newNodeData = {
                             "id": Date.now(),
-                            "label": ["entity", "businessObject"],
+                            "label": ["entity", text],
                             "type": "",
                             "metadata": {"dateCreated": Date.now(), "name": text, "description": ""}
                         };
