@@ -38,17 +38,20 @@
                     self.svg.append("defs").selectAll("marker")
                         .data(["end"])
                         .enter().append("marker")
-                        .attr("id", function (d) {
-                            return d;
+                        .attr({
+                            'id': 'end',
+                            'viewBox': '-0 -5 10 10',
+                            'refX': 25,
+                            'refY': 0,
+                            'orient': 'auto',
+                            'markerWidth': 10,
+                            'markerHeight': 10,
+                            'xoverflow': 'visible'
                         })
-                        .attr("viewBox", "0 -5 10 10")
-                        .attr("refX", 15)
-                        .attr("refY", 0)
-                        .attr("markerWidth", 9)
-                        .attr("markerHeight", 5)
-                        .attr("orient", "auto")
-                        .append("path")
-                        .attr("d", "M0,-5L10,0L0,5");
+                        .append('svg:path')
+                        .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                        .attr('fill', '#ccc')
+                        .attr('stroke', '#ccc');
                     self.chartWrapper = self.svg.append('g').attr("class", 'infornite-graph-wrapper').call(self.zoom).on("dblclick.zoom", null);
                     self.rect = self.chartWrapper.append("rect")
                         .style("cursor", "move").style("fill", "none").style("pointer-events", "all");
@@ -114,13 +117,38 @@
                     // Update links
                     self.link = self.linksEle.selectAll('.link').data(self.links);
 
+                    // enter selection
+                    self.linkEnter = self.link.enter().append('g').attr('class', 'link');
+                    self.linkEnter.append('path').attr('class', 'link-path');
+                    self.linkEnter.append('text').attr('class', 'edge-label');
+
                     // Enter links
-                    self.link.enter().append('path')
-                        .attr('class', 'link')
+                    self.link.select('.link-path')
+                        .attr('id', function (d, i) {
+                            return 'link-path-' + (i + 1);
+                        })
                         .style('fill', 'none')
                         .style('stroke', '#ccc')
-                        .style('stroke-width', 2)
+                        .style('stroke-width', 1)
                         .attr("marker-end", "url(#end)");
+
+                    self.link.select('.edge-label').selectAll('textPath').remove();
+                    self.link.select('.edge-label')
+                        .attr({
+                            'dx': 50,
+                            'dy': -5,
+                            'font-size': 10,
+                            'fill': '#aaa'
+                        })
+                        .style("pointer-events", "none")
+                        .append('textPath')
+                        .attr('xlink:href', function (d, i) {
+                            return '#link-path-' + (i + 1);
+                        })
+                        .style("pointer-events", "none")
+                        .text(function (d) {
+                            return d.source.linkData.relation;
+                        });
 
                     // Remove link object with data
                     self.link.exit().remove();
@@ -150,7 +178,8 @@
                     self.node.select('.node-circle')
                         .style('fill', function (d) {
                             return d.color ? d.color : '#4682b4';
-                        });
+                        })
+                        .attr('r', 15);
 
                     self.node.select('.center-text')
                         .attr("x", 0)
@@ -238,10 +267,10 @@
                     node.select("line")
                         .attr('x1', 0).attr('y1', 0)
                         .style("stroke", "#ccc")
-                        .style('stroke-width', 2);
+                        .style('stroke-width', 1);
 
                     node.select('circle')
-                        .attr("r", 20).style('fill', '#4682b4');
+                        .attr("r", 15).style('fill', '#4682b4');
 
                     node.select('text.node-center')
                         .attr("x", 0)
@@ -297,27 +326,35 @@
                         self.treeLayout.nodes(self.treeData);  	// recalculate tree layout
 
                         // transition link paths
-                        self.link.attr("d", self.svgDiagonal);
+                        self.link.select('.link-path').attr("d", self.svgDiagonal);
+                        self.link.select('.edge-label').attr('transform', null);
+
                         // transition node groups
                         self.node
                             .attr("transform", function (d) {
                                 return "translate(" + d.y + "," + d.x + ")";
                             });
-                        self.node.select('.node-circle').attr("r", 15);
+
                     } else if (self.chartType === 'force') {
-                        self.node.select('.node-circle')
-                            .attr("r", function (d) {
-                                return (d.weight * 2) + 15;
-                            });
                         fnTick();
                     }
                 };
 
                 function fnTick() {
-                    self.link.attr("d", function (d) {
-                        var dr = 0;
-                        return "M" + d.source.fx + "," + d.source.fy + "A" +
-                            dr + "," + dr + " 0 0,1 " + d.target.fx + "," + d.target.fy;
+                    self.link.select('.link-path').attr("d", function (d) {
+                        return 'M ' + d.source.fx + ' ' + d.source.fy + ' L ' + d.target.fx + ' ' + d.target.fy;
+                    });
+
+                    self.link.select('.edge-label').attr('transform', function (d, i) {
+                        if (d.target.x < d.source.x) {
+                            var bbox = this.getBBox();
+                            var rx = bbox.x + bbox.width / 2;
+                            var ry = bbox.y + bbox.height / 2;
+                            return 'rotate(180 ' + rx + ' ' + ry + ')';
+                        }
+                        else {
+                            return 'rotate(0)';
+                        }
                     });
 
                     self.node.attr('transform', function (d) {
@@ -338,6 +375,8 @@
 
                     object.edges.forEach(function (a) {
                         if (o[a.target] && o[a.source]) {
+                            o[a.target].linkData = a;
+                            o[a.source].linkData = a;
                             o[a.target].parent = o[a.source].name;
                             o[a.source].children = o[a.source].children || [];
                             o[a.source].children.push(o[a.target]);
