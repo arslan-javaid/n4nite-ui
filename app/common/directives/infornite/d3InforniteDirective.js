@@ -41,7 +41,7 @@
                         .attr({
                             'id': 'end',
                             'viewBox': '-0 -5 10 10',
-                            'refX': 25,
+                            'refX': 30,
                             'refY': 0,
                             'orient': 'auto',
                             'markerWidth': 10,
@@ -147,7 +147,7 @@
                         })
                         .style("pointer-events", "none")
                         .text(function (d) {
-                            return d.source.linkData.relation;
+                            return d.source.linkData ? d.source.linkData.relation : 'Add relation';
                         });
 
                     // Remove link object with data
@@ -169,6 +169,7 @@
                     self.nodeEnter.append('text').attr('class', 'node-label');
                     self.nodeEnter.append('circle').attr('class', 'notify-circle');
                     self.nodeEnter.append('text').attr('class', 'notify-text');
+                    self.nodeEnter.append('image').attr('class', 'remove-icon');
 
                     // update selection
                     self.node.attr('class', 'node')
@@ -179,7 +180,7 @@
                         .style('fill', function (d) {
                             return d.color ? d.color : '#4682b4';
                         })
-                        .attr('r', 15);
+                        .attr('r', 20);
 
                     self.node.select('.center-text')
                         .attr("x", 0)
@@ -203,7 +204,7 @@
                         .attr("r", 8)
                         .attr("transform", "translate(15,-15)")
                         .style("cursor", "pointer")
-                        .style("fill", "red")
+                        .style("fill", "#F79D3C")
                         .style('display', function (d) {
                             return (d.children || d._children) ? 'block' : 'none';
                         })
@@ -222,6 +223,13 @@
                         .text(function (d) {
                             return d._children ? d._children.length : 0;
                         });
+
+                    self.node.select('.remove-icon')
+                        .attr('xlink:href', 'assets/images/fa-trash.png')
+                        .attr('transform', 'translate(-15,-38)')
+                        .attr('height', 15)
+                        .attr('width', 15)
+                        .on('click', fnDeleteNode);
 
                     // Remove nodes object with data
                     self.node.exit().remove();
@@ -366,31 +374,6 @@
                     self.chartContainer.attr('transform', 'translate(' + d3.event.translate + ')scale(' + d3.event.scale + ')');
                 }
 
-                function fnGenerateTree(object) {
-                    var o = {}, children = {};
-
-                    object.nodes.forEach(function (a, i) {
-                        o[i] = {name: a.label[1], data: a};
-                    });
-
-                    object.edges.forEach(function (a) {
-                        if (o[a.target] && o[a.source]) {
-                            o[a.target].linkData = a;
-                            o[a.source].linkData = a;
-                            o[a.target].parent = o[a.source].name;
-                            o[a.source].children = o[a.source].children || [];
-                            o[a.source].children.push(o[a.target]);
-                            children[a.target] = true;
-                        }
-                    });
-
-                    return Object.keys(o).filter(function (k) {
-                        return !children[k];
-                    }).map(function (k) {
-                        return o[k];
-                    });
-                }
-
                 // Toggle children on click.
                 function fnToggleNode(d) {
                     if (d.children) {
@@ -404,8 +387,12 @@
                 }
 
                 function fnUpdateNodeAndLinks() {
-                    self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
-                    self.links = self.treeLayout.links(self.nodes);  // creates the links array
+                    if (Object.keys(self.treeData).length) {
+                        self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
+                        self.links = self.treeLayout.links(self.nodes);  // creates the links array
+                    } else {
+                        self.nodes = self.links = [];
+                    }
                     self.redraw();
                 }
 
@@ -486,6 +473,46 @@
                         }
                     });
                     return obj;
+                }
+
+                function fnDeleteNode(node) {
+                    if (node.parent) {
+                        var parentChildren = node.parent.children,
+                            index = parentChildren.map(function (d) {
+                                return d.data.id;
+                            }).indexOf(node.data.id);
+                        if (index > -1) {
+                            parentChildren.splice(index, 1);
+                        }
+                    } else {
+                        self.treeData = {};
+                    }
+                    fnUpdateNodeAndLinks();
+                }
+
+                function fnGenerateTree(object) {
+                    var o = {}, children = {};
+
+                    object.nodes.forEach(function (a, i) {
+                        o[i] = {name: a.label[1], data: a};
+                    });
+
+                    object.edges.forEach(function (a) {
+                        if (o[a.target] && o[a.source]) {
+                            o[a.target].linkData = a;
+                            o[a.source].linkData = a;
+                            o[a.target].parent = o[a.source].name;
+                            o[a.source].children = o[a.source].children || [];
+                            o[a.source].children.push(o[a.target]);
+                            children[a.target] = true;
+                        }
+                    });
+
+                    return Object.keys(o).filter(function (k) {
+                        return !children[k];
+                    }).map(function (k) {
+                        return o[k];
+                    });
                 }
 
                 function fnRatio(width) {
