@@ -21,7 +21,7 @@
                     self.newNodesArr = [];
 
                     self.treeLayout = d3.layout.tree();
-                    self.forceLayout = d3.layout.force().gravity(0.05).charge(-300).linkDistance(80);
+                    self.forceLayout = d3.layout.force().gravity(0.04).charge(-210).linkDistance(210);
                     self.svgDiagonal = d3.svg.diagonal().projection(function (d) {
                         return [d.y, d.x];
                     });
@@ -34,6 +34,21 @@
 
                     // initialize svg
                     self.svg = d3.select(self.chartId).append('svg').attr('class', 'd3-infornite-svg');
+                    // build the arrow.
+                    self.svg.append("defs").selectAll("marker")
+                        .data(["end"])
+                        .enter().append("marker")
+                        .attr("id", function (d) {
+                            return d;
+                        })
+                        .attr("viewBox", "0 -5 10 10")
+                        .attr("refX", 15)
+                        .attr("refY", 0)
+                        .attr("markerWidth", 9)
+                        .attr("markerHeight", 5)
+                        .attr("orient", "auto")
+                        .append("path")
+                        .attr("d", "M0,-5L10,0L0,5");
                     self.chartWrapper = self.svg.append('g').attr("class", 'infornite-graph-wrapper').call(self.zoom).on("dblclick.zoom", null);
                     self.rect = self.chartWrapper.append("rect")
                         .style("cursor", "move").style("fill", "none").style("pointer-events", "all");
@@ -51,7 +66,7 @@
                     self.chartWidth = self.parentEle.width() - self.margin.right - self.margin.left;
                     self.chartHeight = fnRatio(self.chartWidth) * self.chartWidth;
 
-                    self.treeLayout.size([self.chartHeight, self.chartWidth]);
+                    self.treeLayout.size([self.chartHeight, self.chartWidth - 200]);
                     self.forceLayout.size([self.chartWidth, self.chartHeight]);
 
                     //update svg elements to new dimensions
@@ -88,22 +103,24 @@
                             self.forceLayout.tick();
                         }
                         self.forceLayout.stop();
+                        fnRecursive(self.treeData);
                     }
-                    self.redraw(self.nodes, self.links);
+                    self.redraw();
                 };
 
-                d3Infornite.prototype.redraw = function (nodes, links) {
+                d3Infornite.prototype.redraw = function () {
 
                     /*----- START : Create edges -----*/
                     // Update links
-                    self.link = self.linksEle.selectAll('.link').data(links);
+                    self.link = self.linksEle.selectAll('.link').data(self.links);
 
                     // Enter links
                     self.link.enter().append('path')
                         .attr('class', 'link')
                         .style('fill', 'none')
                         .style('stroke', '#ccc')
-                        .style('stroke-width', 2);
+                        .style('stroke-width', 2)
+                        .attr("marker-end", "url(#end)");
 
                     // Remove link object with data
                     self.link.exit().remove();
@@ -111,7 +128,7 @@
 
 
                     /*----- START : Create nodes -----*/
-                    self.node = self.nodesEle.selectAll('.node').data(nodes);
+                    self.node = self.nodesEle.selectAll('.node').data(self.nodes);
 
                     // enter selection
                     self.nodeEnter = self.node.enter().append('g')
@@ -249,26 +266,17 @@
 
                 d3Infornite.prototype.visualization = function () {
                     if (self.chartType === 'tree') {
-                        self.forceLayout.stop();
-                        var delay = 500;
-                        self.svgDiagonal.projection(function (d) {
-                            return [d.y, d.x];
-                        });
                         self.treeLayout.nodes(self.treeData);  	// recalculate tree layout
 
                         // transition link paths
-                        self.link.transition().duration(delay).attr("d", self.svgDiagonal);
+                        self.link.attr("d", self.svgDiagonal);
                         // transition node groups
-                        self.node.transition()
-                            .duration(delay)
+                        self.node
                             .attr("transform", function (d) {
                                 return "translate(" + d.y + "," + d.x + ")";
                             });
-                        self.node.select('circle').transition().duration(delay).attr("r", 15);
+                        self.node.select('circle').attr("r", 15);
                     } else if (self.chartType === 'force') {
-                        self.svgDiagonal.projection(function (d) {
-                            return [d.x, d.y];
-                        });
                         self.node.select('circle')
                             .attr("r", function (d) {
                                 return (d.weight * 2) + 15;
@@ -278,10 +286,14 @@
                 };
 
                 function fnTick() {
-                    self.link.attr("d", self.svgDiagonal);
+                    self.link.attr("d", function (d) {
+                        var dr = 0;
+                        return "M" + d.source.fx + "," + d.source.fy + "A" +
+                            dr + "," + dr + " 0 0,1 " + d.target.fx + "," + d.target.fy;
+                    });
 
                     self.node.attr('transform', function (d) {
-                        return 'translate(' + d.x + ', ' + d.y + ')';
+                        return 'translate(' + d.fx + ', ' + d.fy + ')';
                     });
                 }
 
@@ -325,31 +337,17 @@
                         d.children = d._children;
                         d._children = null;
                     }
-                    fnFixedNodePosition();
+                    fnUpdateNodeAndLinks();
                 }
 
-                function fnFixedNodePosition() {
-                    var nodes, links, copyNodes;
-                    copyNodes = angular.copy(self.nodes);
-                    nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
-                    nodes = nodes.map(function (d) {
-                        angular.forEach(copyNodes, function (node) {
-                            if (d.data.id === node.data.id) {
-                                d.x = node.x;
-                                d.y = node.y;
-                            }
-                        });
-                        return d;
-                    });
-                    links = self.treeLayout.links(nodes);  // creates the links array
-                    self.redraw(nodes, links);
+                function fnUpdateNodeAndLinks() {
+                    self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
+                    self.links = self.treeLayout.links(self.nodes);  // creates the links array
+                    self.redraw();
                 }
 
                 function fnDragStarted(d) {
                     d3.event.sourceEvent.stopPropagation();
-                    if (d3.select(this).attr('class') !== 'new-node' && self.chartType === 'force') {
-                        self.forceLayout.stop(); // stops the force auto positioning before you start dragging
-                    }
                 }
 
                 function fnDragged(d) {
@@ -374,13 +372,9 @@
                                 d3.select(this).attr('transform', 'translate(' + d3.event.x + ', ' + d3.event.y + ')');
                             }
                         } else {
-                            var dx = d3.event.dx,
-                                dy = d3.event.dy;
                             if (self.chartType === 'force') {
-                                d.px += dx;
-                                d.py += dy;
-                                d.x += dx;
-                                d.y += dy;
+                                d.fx += d3.event.dx;
+                                d.fy += d3.event.dy;
                                 fnTick();
                             }
                         }
@@ -388,32 +382,47 @@
                 }
 
                 function fnDragEnded(d) {
-                    d3.select(this).select('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 0);
-                    if (d.parentObj) {
-                        var nodeObj = {
-                            name: d.label[1],
-                            data: d,
-                            x: d.x,
-                            y: d.y,
-                            px: d.x,
-                            py: d.y,
-                            weight: 1
-                        };
-                        d.parentObj.children.push(nodeObj);
-                        self.nodes.push(nodeObj);
-                        fnFixedNodePosition();
-                        // Remove new node from dom
-                        var index = self.newNodesArr.map(function (d) {
-                            return d.id;
-                        }).indexOf(d.id);
-                        if (index > -1) {
-                            self.newNodesArr.splice(index, 1);
+                    if (d3.select(this).attr('class') === 'new-node') {
+                        d3.select(this).select('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 0);
+                        if (d.parentObj) {
+                            var nodeObj = {
+                                name: d.label[1],
+                                data: d,
+                                x: d.x,
+                                y: d.y,
+                                px: d.x,
+                                py: d.y,
+                                fx: d.x,
+                                fy: d.y,
+                                weight: 1
+                            };
+                            d.parentObj.children.push(nodeObj);
+                            fnUpdateNodeAndLinks();
+                            // Remove new node from dom
+                            var index = self.newNodesArr.map(function (d) {
+                                return d.id;
+                            }).indexOf(d.id);
+                            if (index > -1) {
+                                self.newNodesArr.splice(index, 1);
+                            }
+                            d3.select('#new-node-node-' + d.index).remove();
                         }
-                        d3.select('#new-node-node-' + d.index).remove();
                     }
-                    if (d3.select(this).attr('class') !== 'new-node' && self.chartType === 'force') {
-                        fnTick();
-                    }
+                }
+
+                function fnRecursive(obj) {
+                    angular.forEach(obj, function (val, key) {
+                        if (key === 'x') {
+                            obj.fx = obj.x;
+                        }
+                        if (key === 'y') {
+                            obj.fy = obj.y;
+                        }
+                        if (key === "children" || typeof key === "number") {
+                            fnRecursive(val);
+                        }
+                    });
+                    return obj;
                 }
 
                 function fnRatio(width) {
