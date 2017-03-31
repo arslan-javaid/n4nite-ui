@@ -136,17 +136,18 @@
                             return d.data.index;
                         })
                         .attr('class', 'node');
-                    self.nodeEnter.append('circle');
+                    self.nodeEnter.append('circle').attr('class', 'node-circle');
                     self.nodeEnter.append('text').attr('class', 'center-text');
                     self.nodeEnter.append('text').attr('class', 'node-label');
+                    self.nodeEnter.append('circle').attr('class', 'notify-circle');
+                    self.nodeEnter.append('text').attr('class', 'notify-text');
 
                     // update selection
                     self.node.attr('class', 'node')
                         .style("cursor", "pointer")
-                        .on("dblclick", fnToggleNode)
                         .call(self.drag);
 
-                    self.node.select('circle')
+                    self.node.select('.node-circle')
                         .style('fill', function (d) {
                             return d.color ? d.color : '#4682b4';
                         });
@@ -167,6 +168,30 @@
                         .style('fill', '#000')
                         .text(function (d) {
                             return d.data.metadata.name;
+                        });
+
+                    self.node.select('.notify-circle')
+                        .attr("r", 8)
+                        .attr("transform", "translate(15,-15)")
+                        .style("cursor", "pointer")
+                        .style("fill", "red")
+                        .style('display', function (d) {
+                            return (d.children || d._children) ? 'block' : 'none';
+                        })
+                        .on("click", fnToggleNode);
+
+                    self.node.select('.notify-text')
+                        .attr("dy", ".35em")
+                        .attr("text-anchor", "middle")
+                        .attr("transform", "translate(15,-15)")
+                        .style('fill', '#fff')
+                        .style('font-size', '11px')
+                        .style('display', function (d) {
+                            return (d.children || d._children) ? 'block' : 'none';
+                        })
+                        .on("click", fnToggleNode)
+                        .text(function (d) {
+                            return d._children ? d._children.length : 0;
                         });
 
                     // Remove nodes object with data
@@ -211,10 +236,13 @@
                         .call(self.drag);
 
                     node.select("line")
-                        .style("stroke", "#000")
-                        .attr('x1', 0).attr('y1', 0);
+                        .attr('x1', 0).attr('y1', 0)
+                        .style("stroke", "#ccc")
+                        .style('stroke-width', 2);
+
                     node.select('circle')
                         .attr("r", 20).style('fill', '#4682b4');
+
                     node.select('text.node-center')
                         .attr("x", 0)
                         .attr("dy", ".35em")
@@ -275,9 +303,9 @@
                             .attr("transform", function (d) {
                                 return "translate(" + d.y + "," + d.x + ")";
                             });
-                        self.node.select('circle').attr("r", 15);
+                        self.node.select('.node-circle').attr("r", 15);
                     } else if (self.chartType === 'force') {
-                        self.node.select('circle')
+                        self.node.select('.node-circle')
                             .attr("r", function (d) {
                                 return (d.weight * 2) + 15;
                             });
@@ -326,10 +354,6 @@
 
                 // Toggle children on click.
                 function fnToggleNode(d) {
-                    // ignore drag
-                    if (d3.event.defaultPrevented) {
-                        return;
-                    }
                     if (d.children) {
                         d._children = d.children;
                         d.children = null;
