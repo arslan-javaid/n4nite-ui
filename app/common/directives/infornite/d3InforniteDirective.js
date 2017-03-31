@@ -239,98 +239,107 @@
                 };
 
                 d3Infornite.prototype.addNewNode = function (newNodeData) {
-                    newNodeData.index = self.nodes.length + self.newNodesArr.length;
-                    self.newNodesArr.push(newNodeData);
-                    var node = self.newNodes.selectAll('.new-node').data(self.newNodesArr);
+                    if (self.treeData && Object.keys(self.treeData).length) {
+                        newNodeData.index = self.nodes.length + self.newNodesArr.length;
+                        self.newNodesArr.push(newNodeData);
+                        var node = self.newNodes.selectAll('.new-node').data(self.newNodesArr);
 
-                    // enter selection
-                    var nodeEnter = node.enter().append('g');
-                    nodeEnter.append('line');
-                    nodeEnter.append('circle');
-                    nodeEnter.append('text').attr("class", "node-center");
-                    nodeEnter.append('text').attr("class", function (d) {
-                        return 'node-label-' + d.id;
-                    });
-
-                    // update selection
-                    node.attr('class', 'new-node')
-                        .attr('id', function (d) {
-                            return "new-node-node-" + d.index;
-                        })
-                        .attr('transform', function (d, i) {
-                            var x = d.x ? d.x : 40,
-                                y = d.y ? d.y : ((i + 1) * 40);
-                            return 'translate(' + x + ',' + y + ')';
-                        })
-                        .style("cursor", "pointer")
-                        .on("dblclick", function () {
-                            if (d3.select(this).attr('draw-line')) {
-                                d3.select(this).attr('draw-line', null);
-                            } else {
-                                d3.select(this).attr('draw-line', 'true');
-                            }
-                        })
-                        .call(self.drag);
-
-                    node.select("line")
-                        .attr('x1', 0).attr('y1', 0)
-                        .style("stroke", "#ccc")
-                        .style('stroke-width', 1);
-
-                    node.select('circle')
-                        .attr("r", 15).style('fill', '#4682b4');
-
-                    node.select('text.node-center')
-                        .attr("x", 0)
-                        .attr("dy", ".35em")
-                        .attr("text-anchor", "middle")
-                        .style('fill', '#fff')
-                        .text(function (d) {
-                            return d.metadata.name.charAt(0).toUpperCase();
+                        // enter selection
+                        var nodeEnter = node.enter().append('g');
+                        nodeEnter.append('line');
+                        nodeEnter.append('circle');
+                        nodeEnter.append('text').attr("class", "node-center");
+                        nodeEnter.append('text').attr("class", function (d) {
+                            return 'node-label-' + d.id;
                         });
 
-                    nodeEnter.append('foreignObject')
-                        .attr("class", function (d) {
-                            return 'externalObject fo-' + d.id;
-                        })
-                        .attr("width", 100)
-                        .attr("height", 100)
-                        .attr("x", 21)
-                        .attr("y", -11)
-                        .append("xhtml:div")
-                        .html(function (d) {
-                            var inputText = document.createElement("input");
-                            inputText.setAttribute('type', 'text');
-                            inputText.setAttribute('id', d.id);
-                            inputText.setAttribute('class', 'new-label-input');
-                            inputText.setAttribute('placeholder', 'Add label');
-                            inputText.setAttribute('style', 'border: 1px solid #ccc;');
-                            inputText.setAttribute('value', d.metadata.name);
-                            return new XMLSerializer().serializeToString(inputText);
-                        });
+                        // update selection
+                        node.attr('class', 'new-node')
+                            .attr('id', function (d) {
+                                return "new-node-node-" + d.index;
+                            })
+                            .attr('transform', function (d, i) {
+                                var x = d.x ? d.x : 40,
+                                    y = d.y ? d.y : ((i + 1) * 40);
+                                return 'translate(' + x + ',' + y + ')';
+                            })
+                            .style("cursor", "pointer")
+                            .on("dblclick", function () {
+                                if (d3.select(this).attr('draw-line')) {
+                                    d3.select(this).attr('draw-line', null);
+                                } else {
+                                    d3.select(this).attr('draw-line', 'true');
+                                }
+                            })
+                            .call(self.drag);
 
-                    node.selectAll('.externalObject').select('input')
-                        .on('change', function () {
-                            var id = $(this).attr('id'),
-                                val = $(this).val();
-                            node.select('.node-label-' + id)
-                                .attr("x", 21)
-                                .attr("dy", ".35em")
-                                .attr("text-anchor", "start")
-                                .style('fill', '#000')
-                                .text(val);
-                            node.select('.fo-' + id).attr('id', function (d) {
-                                d.metadata.name = val;
+                        node.select("line")
+                            .attr('x1', 0).attr('y1', 0)
+                            .style("stroke", "#ccc")
+                            .style('stroke-width', 1);
+
+                        node.select('circle')
+                            .attr("r", 15).style('fill', '#4682b4');
+
+                        node.select('text.node-center')
+                            .attr("x", 0)
+                            .attr("dy", ".35em")
+                            .attr("text-anchor", "middle")
+                            .style('fill', '#fff')
+                            .text(function (d) {
+                                return d.metadata.name.charAt(0).toUpperCase();
                             });
-                            node.select('.fo-' + id).remove();
-                        });
 
-                    // Remove nodes object with data
-                    node.exit().remove();
+                        nodeEnter.append('foreignObject')
+                            .attr("class", function (d) {
+                                return 'externalObject fo-' + d.id;
+                            })
+                            .attr("width", 100)
+                            .attr("height", 100)
+                            .attr("x", 21)
+                            .attr("y", -11)
+                            .append("xhtml:div")
+                            .html(function (d) {
+                                var inputText = document.createElement("input");
+                                inputText.setAttribute('type', 'text');
+                                inputText.setAttribute('id', d.id);
+                                inputText.setAttribute('class', 'new-label-input');
+                                inputText.setAttribute('placeholder', 'Add label');
+                                inputText.setAttribute('style', 'border: 1px solid #ccc;');
+                                inputText.setAttribute('value', d.metadata.name);
+                                return new XMLSerializer().serializeToString(inputText);
+                            });
+
+                        node.selectAll('.externalObject').select('input')
+                            .on('change', function () {
+                                var id = $(this).attr('id'),
+                                    val = $(this).val();
+                                node.select('.node-label-' + id)
+                                    .attr("x", 21)
+                                    .attr("dy", ".35em")
+                                    .attr("text-anchor", "start")
+                                    .style('fill', '#000')
+                                    .text(val);
+                                node.select('.fo-' + id).attr('id', function (d) {
+                                    d.metadata.name = val;
+                                });
+                                node.select('.fo-' + id).remove();
+                            });
+
+                        // Remove nodes object with data
+                        node.exit().remove();
+                    } else {
+                        var newData = {nodes: [], edges: []};
+                        newData.nodes.push(newNodeData);
+                        self.treeData = fnGenerateTree(newData)[0];
+                        self.treeData.fx = 50;
+                        self.treeData.fy = 50;
+                        fnUpdateNodeAndLinks();
+                    }
                 };
 
                 d3Infornite.prototype.visualization = function () {
-                    if (self.chartType === 'tree') {
+                    if (self.chartType === 'tree' && self.treeData) {
                         self.treeLayout.nodes(self.treeData);  	// recalculate tree layout
 
                         // transition link paths
@@ -387,7 +396,7 @@
                 }
 
                 function fnUpdateNodeAndLinks() {
-                    if (Object.keys(self.treeData).length) {
+                    if (self.treeData && Object.keys(self.treeData).length) {
                         self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
                         self.links = self.treeLayout.links(self.nodes);  // creates the links array
                     } else {
@@ -485,7 +494,7 @@
                             parentChildren.splice(index, 1);
                         }
                     } else {
-                        self.treeData = {};
+                        self.treeData = null;
                     }
                     fnUpdateNodeAndLinks();
                 }
