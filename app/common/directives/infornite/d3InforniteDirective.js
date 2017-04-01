@@ -132,8 +132,7 @@
                         .style('stroke-width', 1)
                         .attr("marker-end", "url(#end)");
 
-                    self.link.select('.edge-label').selectAll('textPath').remove();
-                    self.link.select('.edge-label')
+                    self.linkEnter.append('text').attr('class', 'edge-label')
                         .attr({
                             'dx': 50,
                             'dy': -5,
@@ -173,6 +172,7 @@
 
                     // update selection
                     self.node.attr('class', 'node')
+                        .attr('name', 'gNode')
                         .style("cursor", "pointer")
                         .call(self.drag);
 
@@ -242,62 +242,88 @@
                     if (self.treeData && Object.keys(self.treeData).length) {
                         newNodeData.index = self.nodes.length + self.newNodesArr.length;
                         self.newNodesArr.push(newNodeData);
-                        var node = self.newNodes.selectAll('.new-node').data(self.newNodesArr);
+                        var node = self.newNodes.selectAll('.nn-group').data(self.newNodesArr);
 
                         // enter selection
                         var nodeEnter = node.enter().append('g');
-                        nodeEnter.append('line');
-                        nodeEnter.append('circle');
-                        nodeEnter.append('text').attr("class", "node-center");
+                        nodeEnter.append('line').attr('class', 'nn-line-connector');
+                        nodeEnter.append('circle').attr('class', 'nn-circle');
+                        nodeEnter.append('text').attr("class", "nn-center-text");
                         nodeEnter.append('text').attr("class", function (d) {
                             return 'node-label-' + d.id;
                         });
+                        nodeEnter.append('circle').attr('class', 'nn-circle-connector');
 
                         // update selection
-                        node.attr('class', 'new-node')
+                        node.attr('class', 'nn-group')
+                            .attr('name', 'nnGroup')
                             .attr('id', function (d) {
-                                return "new-node-node-" + d.index;
+                                return "nnGroup" + d.id;
+                            })
+                            .attr('data-id', function (d) {
+                                return d.id;
                             })
                             .attr('transform', function (d, i) {
-                                var x = d.x ? d.x : 40,
-                                    y = d.y ? d.y : ((i + 1) * 40);
-                                return 'translate(' + x + ',' + y + ')';
+                                d.x = d.x ? d.x : 50;
+                                d.y = d.y ? d.y : ((i + 1) * 50);
+                                return 'translate(' + d.x + ',' + d.y + ')';
                             })
                             .style("cursor", "pointer")
-                            .on("dblclick", function () {
-                                if (d3.select(this).attr('draw-line')) {
-                                    d3.select(this).attr('draw-line', null);
-                                } else {
-                                    d3.select(this).attr('draw-line', 'true');
-                                }
-                            })
                             .call(self.drag);
 
-                        node.select("line")
-                            .attr('x1', 0).attr('y1', 0)
-                            .style("stroke", "#ccc")
+                        node.select('.nn-line-connector')
+                            .attr('id', function (d) {
+                                return "nnLineConnector" + d.id;
+                            })
+                            .attr('data-id', function (d) {
+                                return d.id;
+                            })
+                            .attr('name', 'nnLineConnector')
+                            .attr('x1', 20).attr('y1', 0)
+                            .style('stroke', '#ccc')
                             .style('stroke-width', 1);
 
-                        node.select('circle')
-                            .attr("r", 15).style('fill', '#4682b4');
+                        node.select('.nn-circle')
+                            .attr('data-id', function (d) {
+                                return d.id;
+                            })
+                            .attr('name', 'nnCircle')
+                            .attr("r", 20)
+                            .style('fill', '#4682b4');
 
-                        node.select('text.node-center')
-                            .attr("x", 0)
-                            .attr("dy", ".35em")
-                            .attr("text-anchor", "middle")
+                        node.select('.nn-circle-connector')
+                            .attr('data-id', function (d) {
+                                return d.id;
+                            })
+                            .attr('name', 'nnCircleConnector')
+                            .attr('r', 5)
+                            .attr('transform', 'translate(20,0)')
+                            .style('fill', '#8b0000')
+                            .call(self.drag);
+
+                        node.select('.nn-center-text')
+                            .attr('data-id', function (d) {
+                                return d.id;
+                            })
+                            .attr('name', 'nnCenterText')
+                            .attr('x', 0)
+                            .attr('dy', '.35em')
+                            .attr('text-anchor', 'middle')
                             .style('fill', '#fff')
                             .text(function (d) {
                                 return d.metadata.name.charAt(0).toUpperCase();
                             });
 
                         nodeEnter.append('foreignObject')
+                            .attr('data-id', function (d) {
+                                return d.id;
+                            })
                             .attr("class", function (d) {
                                 return 'externalObject fo-' + d.id;
                             })
                             .attr("width", 100)
                             .attr("height", 100)
-                            .attr("x", 21)
-                            .attr("y", -11)
+                            .attr("transform", "translate(-45,-45)")
                             .append("xhtml:div")
                             .html(function (d) {
                                 var inputText = document.createElement("input");
@@ -305,7 +331,7 @@
                                 inputText.setAttribute('id', d.id);
                                 inputText.setAttribute('class', 'new-label-input');
                                 inputText.setAttribute('placeholder', 'Add label');
-                                inputText.setAttribute('style', 'border: 1px solid #ccc;');
+                                inputText.setAttribute('style', 'border:1px solid #ccc;outline: none;width:100px;');
                                 inputText.setAttribute('value', d.metadata.name);
                                 return new XMLSerializer().serializeToString(inputText);
                             });
@@ -405,67 +431,68 @@
                     self.redraw();
                 }
 
-                function fnDragStarted(d) {
+                function fnDragStarted() {
                     d3.event.sourceEvent.stopPropagation();
                 }
 
                 function fnDragged(d) {
-                    if (d) {
-                        if (d3.select(this).attr('class') === 'new-node') {
-                            if (d3.select(this).attr('draw-line')) {
-                                if (d3.select(this).attr('id') !== d3.event.sourceEvent.toElement.parentNode.id) {
-                                    var obj = d3.event.sourceEvent.toElement.__data__;
-                                    if (obj && !obj.children) {
-                                        obj.children = [];
-                                    }
-                                    d.parentObj = obj;
-                                }
-                                if (!d.x && !d.y) {
-                                    d.x = d3.event.x;
-                                    d.y = d3.event.y;
-                                }
-                                d3.select(this).select('line').attr('x2', (d3.event.x - d.x)).attr('y2', (d3.event.y - d.y));
-                            } else {
-                                d.x = d3.event.x;
-                                d.y = d3.event.y;
-                                d3.select(this).attr('transform', 'translate(' + d3.event.x + ', ' + d3.event.y + ')');
+                    switch (d3.select(this).attr('name')) {
+                        case 'nnCircleConnector':
+                            var obj = d3.event.sourceEvent.toElement.__data__;
+                            if (obj && !obj.children) {
+                                obj.children = [];
                             }
-                        } else {
+                            d.parentObj = obj;
+                            d3.select('#nnLineConnector' + d3.select(this).attr('data-id'))
+                                .attr('x2', d3.event.x).attr('y2', d3.event.y);
+                            break;
+
+                        case 'nnGroup':
+                            d.x = d3.event.x;
+                            d.y = d3.event.y;
+                            d3.select(this).attr('transform', 'translate(' + d3.event.x + ', ' + d3.event.y + ')');
+                            break;
+
+                        case 'gNode':
                             if (self.chartType === 'force') {
                                 d.fx += d3.event.dx;
                                 d.fy += d3.event.dy;
                                 fnTick();
                             }
-                        }
+                            break;
                     }
                 }
 
                 function fnDragEnded(d) {
-                    if (d3.select(this).attr('class') === 'new-node') {
-                        d3.select(this).select('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 0);
-                        if (d.parentObj) {
-                            var nodeObj = {
-                                name: d.label[1],
-                                data: d,
-                                x: d.x,
-                                y: d.y,
-                                px: d.x,
-                                py: d.y,
-                                fx: d.x,
-                                fy: d.y,
-                                weight: 1
-                            };
-                            d.parentObj.children.push(nodeObj);
-                            fnUpdateNodeAndLinks();
-                            // Remove new node from dom
-                            var index = self.newNodesArr.map(function (d) {
-                                return d.id;
-                            }).indexOf(d.id);
-                            if (index > -1) {
-                                self.newNodesArr.splice(index, 1);
+                    d3.event.sourceEvent.stopPropagation(); // silence other listeners
+                    switch (d3.select(this).attr('name')) {
+                        case 'nnCircleConnector':
+                            d3.select('#nnLineConnector' + d3.select(this).attr('data-id'))
+                                .attr('x1', 20).attr('y1', 0).attr('x2', 0).attr('y2', 0);
+                            if (d.parentObj) {
+                                var nodeObj = {
+                                    name: d.label[1],
+                                    data: d,
+                                    x: d.x,
+                                    y: d.y,
+                                    px: d.x,
+                                    py: d.y,
+                                    fx: d.x,
+                                    fy: d.y,
+                                    weight: 1
+                                };
+                                d.parentObj.children.push(nodeObj);
+                                fnUpdateNodeAndLinks();
+                                // Remove new node from dom
+                                var index = self.newNodesArr.map(function (d) {
+                                    return d.id;
+                                }).indexOf(d.id);
+                                if (index > -1) {
+                                    self.newNodesArr.splice(index, 1);
+                                }
+                                d3.select('#nnGroup' + d.id).remove();
                             }
-                            d3.select('#new-node-node-' + d.index).remove();
-                        }
+                            break;
                     }
                 }
 
