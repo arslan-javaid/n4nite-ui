@@ -21,7 +21,7 @@
                     self.newNodesArr = [];
 
                     self.treeLayout = d3.layout.tree();
-                    self.forceLayout = d3.layout.force().gravity(0.04).charge(-210).linkDistance(210);
+                    self.forceLayout = d3.layout.force().gravity(0.04).charge(-1000).linkDistance(100);
                     self.svgDiagonal = d3.svg.diagonal().projection(function (d) {
                         return [d.y, d.x];
                     });
@@ -82,19 +82,15 @@
 
                 d3Infornite.prototype.update = function (data) {
                     self.render();
+
                     // Filter node edges.
-                    var nodesLen = data.nodes.length;
                     data.nodes = data.nodes.map(function (d, i) {
                         d.index = i;
                         return d;
                     });
-                    data.edges = data.edges.filter(function (d) {
-                        return 0 < d.source && d.source < nodesLen && 0 < d.target && d.target < nodesLen;
-                    });
 
-                    // TODO : Get tree index 5 data remove once API give proper response.
-                    self.treeData = fnGenerateTree(angular.copy(data))[5];
-                    self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
+                    self.treeData = fnGenerateTree(angular.copy(data))[0];
+                    self.nodes = _.uniq(self.treeLayout.nodes(self.treeData), 'id'); // create the nodes array
                     self.links = self.treeLayout.links(self.nodes);  // creates the links array
 
                     if (self.chartType === 'force') {
@@ -118,15 +114,25 @@
                     self.link = self.linksEle.selectAll('.link').data(self.links);
 
                     // enter selection
-                    self.linkEnter = self.link.enter().append('g').attr('class', 'link');
-                    self.linkEnter.append('path').attr('class', 'link-path');
-                    self.linkEnter.append('text').attr('class', 'edge-label');
+                    self.linkEnter = self.link.enter().append('g')
+                        .attr('id', function (d) {
+                            var linkObj = d.source['link_' + d.target.id];
+                            return linkObj.id;
+                        })
+                        .attr('source', function (d) {
+                            return d.source.id;
+                        })
+                        .attr('target', function (d) {
+                            return d.target.id;
+                        })
+                        .attr('class', 'link');
 
                     // Enter links
-                    self.link.select('.link-path')
-                        .attr('id', function (d, i) {
-                            return 'link-path-' + (i + 1);
+                    self.linkEnter.append('path')
+                        .attr('id', function (d) {
+                            return 'linkPath' + d.source.id + d.target.id;
                         })
+                        .attr('class', 'link-path')
                         .style('fill', 'none')
                         .style('stroke', '#ccc')
                         .style('stroke-width', 1)
@@ -141,12 +147,13 @@
                         })
                         .style("pointer-events", "none")
                         .append('textPath')
-                        .attr('xlink:href', function (d, i) {
-                            return '#link-path-' + (i + 1);
+                        .attr('xlink:href', function (d) {
+                            return '#linkPath' + d.source.id + d.target.id;
                         })
                         .style("pointer-events", "none")
                         .text(function (d) {
-                            return d.source.linkData ? d.source.linkData.relation : 'Add relation';
+                            var linkObj = d.source['link_' + d.target.id];
+                            return linkObj ? linkObj.relation : 'Add relation';
                         });
 
                     // Remove link object with data
@@ -160,7 +167,7 @@
                     // enter selection
                     self.nodeEnter = self.node.enter().append('g')
                         .attr('id', function (d) {
-                            return d.data.index;
+                            return d.id;
                         })
                         .attr('class', 'node');
                     self.nodeEnter.append('circle').attr('class', 'node-circle');
@@ -197,7 +204,7 @@
                         .attr("text-anchor", "start")
                         .style('fill', '#000')
                         .text(function (d) {
-                            return d.data.metadata.name;
+                            return d.metadata.name;
                         });
 
                     self.node.select('.notify-circle')
@@ -423,7 +430,7 @@
 
                 function fnUpdateNodeAndLinks() {
                     if (self.treeData && Object.keys(self.treeData).length) {
-                        self.nodes = self.treeLayout.nodes(self.treeData); // create the nodes array
+                        self.nodes = _.uniq(self.treeLayout.nodes(self.treeData), 'id'); // create the nodes array
                         self.links = self.treeLayout.links(self.nodes);  // creates the links array
                     } else {
                         self.nodes = self.links = [];
@@ -470,18 +477,12 @@
                             d3.select('#nnLineConnector' + d3.select(this).attr('data-id'))
                                 .attr('x1', 20).attr('y1', 0).attr('x2', 0).attr('y2', 0);
                             if (d.parentObj) {
-                                var nodeObj = {
-                                    name: d.label[1],
-                                    data: d,
-                                    x: d.x,
-                                    y: d.y,
-                                    px: d.x,
-                                    py: d.y,
-                                    fx: d.x,
-                                    fy: d.y,
-                                    weight: 1
-                                };
-                                d.parentObj.children.push(nodeObj);
+                                console.log(d.parentObj);
+                                d.px = d.fx = d.x;
+                                d.py = d.fy = d.y;
+                                d.weight = 1;
+                                d.name = d.label[1];
+                                d.parentObj.children.push(d);
                                 fnUpdateNodeAndLinks();
                                 // Remove new node from dom
                                 var index = self.newNodesArr.map(function (d) {
@@ -515,8 +516,8 @@
                     if (node.parent) {
                         var parentChildren = node.parent.children,
                             index = parentChildren.map(function (d) {
-                                return d.data.id;
-                            }).indexOf(node.data.id);
+                                return d.id;
+                            }).indexOf(node.id);
                         if (index > -1) {
                             parentChildren.splice(index, 1);
                         }
@@ -529,18 +530,19 @@
                 function fnGenerateTree(object) {
                     var o = {}, children = {};
 
-                    object.nodes.forEach(function (a, i) {
-                        o[i] = {name: a.label[1], data: a};
+                    object.nodes.forEach(function (d) {
+                        var obj = d;
+                        obj.name = d.label[1];
+                        o[d.id] = obj;
                     });
 
-                    object.edges.forEach(function (a) {
-                        if (o[a.target] && o[a.source]) {
-                            o[a.target].linkData = a;
-                            o[a.source].linkData = a;
-                            o[a.target].parent = o[a.source].name;
-                            o[a.source].children = o[a.source].children || [];
-                            o[a.source].children.push(o[a.target]);
-                            children[a.target] = true;
+                    object.edges.forEach(function (d) {
+                        if (o[d.source] && o[d.target]) {
+                            o[d.source]['link_' + d.target] = d;
+                            o[d.target].parent = o[d.source].id;
+                            o[d.source].children = o[d.source].children || [];
+                            o[d.source].children.push(o[d.target]);
+                            children[d.target] = true;
                         }
                     });
 
